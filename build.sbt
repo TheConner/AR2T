@@ -12,7 +12,7 @@ libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.1.0"
 libraryDependencies += "com.typesafe" % "config" % "1.4.1"
 
 // For JSON
-libraryDependencies += "io.argonaut" %% "argonaut" % "6.2.2"
+libraryDependencies += "com.typesafe.play" %% "play-json" % "2.7.4"
 
 idePackagePrefix := Some("ca.advtech.ar2t")
 

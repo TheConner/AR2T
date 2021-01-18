@@ -19,4 +19,8 @@ object configuration {
     val metaPath = conf.getString("data." + entity + ".metaPath")
     basePath.concat(metaPath)
   }
+
+  def getString(key: String): String = {
+    conf.getString(key)
+  }
 }
