@@ -1,8 +1,10 @@
 package ca.advtech.ar2t
 
+import ca.advtech.ar2t.Data.DataIngest
 import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.sql.{SQLContext, SparkSession}
 import ca.advtech.ar2t.models.ReviewMetadata
+import ca.advtech.ar2t.util.{DataWriter, StringUtils}
 import org.apache.spark.sql.functions.col
 
 object main {
@@ -34,7 +36,21 @@ object main {
 
     movieReviewDF.printSchema()
 
-    val joinedDF = movieMetaDF.join(movieReviewDF, col("df_meta.asin") === col("df_review.asin"))
-    joinedDF.take(5).foreach(println)
+    // Get all unique ASINs that we have reviews for
+    val uniqueMovieASIN = movieReviewDF.select("asin").distinct()
+
+    println("--- Building Joined DF ---")
+    val joinedDF = movieMetaDF
+      .join(uniqueMovieASIN, col("df_meta.asin") === col("df_review.asin"))
+      .select(col("df_meta.asin"), col("df_meta.title"))
+      .cache()
+
+    println("--- Outputting Joined DF ---")
+
+    // Output
+    val writer = new DataWriter(configuration.getString("data.basePath")
+      + configuration.getString("data.outputPath")
+      + StringUtils.genUnixTimeFileName("output", "csv"))
+    writer.WriteCSV(joinedDF)
   }
 }

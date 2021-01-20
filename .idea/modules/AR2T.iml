@@ -49,7 +49,7 @@
     <orderEntry type="library" name="sbt: com.typesafe.play:play-functional_2.12:2.7.4:jar" level="project" />
     <orderEntry type="library" name="sbt: com.typesafe.play:play-json_2.12:2.7.4:jar" level="project" />
     <orderEntry type="library" name="sbt: com.typesafe:config:1.4.1:jar" level="project" />
-    <orderEntry type="library" name="sbt: com.univocity:univocity-parsers:2.9.0:jar" level="project" />
+    <orderEntry type="library" name="sbt: com.univocity:univocity-parsers:2.9.1:jar" level="project" />
     <orderEntry type="library" name="sbt: commons-beanutils:commons-beanutils:1.9.3:jar" level="project" />
     <orderEntry type="library" name="sbt: commons-cli:commons-cli:1.2:jar" level="project" />
     <orderEntry type="library" name="sbt: commons-codec:commons-codec:1.11:jar" level="project" />

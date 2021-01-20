@@ -1,12 +1,16 @@
 package ca.advtech.ar2t
+package Data
 
-import ca.advtech.ar2t.models.{JsonParseable, Review, ReviewMetadata}
+import models.{JsonParseable, Review, ReviewMetadata}
+
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 
-import scala.reflect.ClassTag
-import scala.reflect.runtime.universe.typeOf
-
+/**
+ * DataIngest helper
+ * TODO: Currently JsonParseable provides generics support, it would be nice to use generics here too
+ * we are currently not using generics as Scala gets very upset when I try to use them
+ */
 object DataIngest {
   def ingestData(spark: SparkSession, entity: String): RDD[Review] = {
     val dataPath = configuration.getPath(entity)
@@ -14,6 +18,7 @@ object DataIngest {
     val metaTextFile = spark.sparkContext.textFile(dataPath, partitions)
     metaTextFile
       .mapPartitions(ParseReviewData)
+      .filter(ReviewCleaner.ReviewFilter)
   }
 
   def ingestMetadata(spark: SparkSession, entity: String): RDD[ReviewMetadata] = {
@@ -31,5 +36,4 @@ object DataIngest {
   def ParseMetadata(lines: Iterator[String]): Iterator[ReviewMetadata] = {
     for (line <- lines) yield JsonParseable[ReviewMetadata].Parse(line)
   }
-
 }
