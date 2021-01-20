@@ -55,7 +55,8 @@ object JsonParseable {
       val json: JsValue = Json.parse(s)
       return new ReviewMetadata(
         (json\"asin").as[String],
-        (json\"title").as[String])
+        if ( (json \ "title").asOpt[String].isEmpty ) "" else (json\"title").as[String]
+      )
     }
   }
 }

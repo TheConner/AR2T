@@ -1,6 +1,8 @@
 package ca.advtech.ar2t
 
 import com.typesafe.config.{Config, ConfigFactory}
+import org.apache.spark.sql.RuntimeConfig
+import org.apache.spark.{SparkConf, SparkContext}
 
 object configuration {
   val conf = ConfigFactory.load()
@@ -29,5 +31,16 @@ object configuration {
 
   def getConfigurationClass(className: String): Config = {
     conf.getConfig(className)
+  }
+
+  def configureSpark(runtime: RuntimeConfig) = {
+    // Load our spark config class
+    val sparkConf = conf.getConfigList("spark.conf")
+    sparkConf.forEach(c => {
+      val key = c.getString("key")
+      val value = c.getString("value")
+      println("Setting key " + key + " with value " + value)
+      runtime.set(key, value)
+    })
   }
 }
