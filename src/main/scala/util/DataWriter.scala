@@ -11,13 +11,15 @@ import scala.collection.mutable
 class DataWriter(fname: String) {
 
   def WriteCSV(body: DataFrame): Unit = {
+    val b = body.collect()
+    println("--- Preparing output ---")
     // Create the file
     val f = new File(fname)
     f.createNewFile()
     val oStream = new FileOutputStream(f)
     val writer = new CsvWriter(oStream, new CsvWriterSettings())
 
-    body.collect().foreach(row => {
+    b.foreach(row => {
       writer.writeRow(row.toSeq.asJava)
     })
 

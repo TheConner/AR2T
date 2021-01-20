@@ -27,6 +27,8 @@ object DataIngest {
     val metaTextFile = spark.sparkContext.textFile(dataPath, partitions)
     metaTextFile
       .mapPartitions(ParseMetadata)
+      .filter(MetadataCleaner.filterMetadata)
+      .mapPartitions(MetadataCleaner.cleanseMetadata)
   }
 
   def ParseReviewData(lines: Iterator[String]): Iterator[Review] = {
