@@ -25,6 +25,12 @@ object configuration {
     basePath.concat(metaPath)
   }
 
+  def getRDDPath(entity: String): String = {
+    val basePath = conf.getString("data.basePath")
+    val rddPath = conf.getString("data.writeRDDPath")
+    basePath.concat(rddPath).concat(entity)
+  }
+
   def getString(key: String): String = {
     conf.getString(key)
   }

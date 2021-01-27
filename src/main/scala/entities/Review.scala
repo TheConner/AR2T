@@ -1,5 +1,5 @@
 package ca.advtech.ar2t
-package models
+package entities
 
 import java.time.Instant
 import java.util.Date

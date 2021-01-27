@@ -1,34 +1,11 @@
 package ca.advtech.ar2t
-package models
+package entities
 
 import play.api.libs.json.{JsResultException, JsValue, Json}
 import sun.jvm.hotspot.HelloWorld.e
 
 import java.time.Instant
 import scala.reflect.ClassTag
-
-/*
-trait CanFoo[A] {
-  def foos(x: A): String
-}
-
-object CanFoo {
-  def apply[A:CanFoo]: CanFoo[A] = implicitly
-}
-
-
-
-case class Wrapper(wrapped: String)
-
-implicit object WrapperCanFoo extends CanFoo[Wrapper] {
-  def foos(x: Wrapper) = x.wrapped
-}
-
-def foo[A:CanFoo](thing: A) = CanFoo[A].foos(thing)
-
-foo(Wrapper("hi"))
-// "hi"
- */
 
 trait JsonParseable[T] {
   def Parse(s: String): T

@@ -1,12 +1,16 @@
 package ca.advtech.ar2t
-package Data
+package data
 
-import models.ReviewMetadata
+import entities.ReviewMetadata
 
 object MetadataCleaner {
-  private val config = configuration.getConfigurationClass("dataCleaner")
+
+  //region Configuration
+
+  private val config = configuration.getConfigurationClass("data.dataCleaner")
   private val filterLength = config.getInt("cleanMeta.length")
   private val regexes = config.getStringList("cleanMeta.regexClear")
+  //endregion
 
   def filterMetadata(meta: ReviewMetadata): Boolean = {
     if (filterLength > 0 && meta.title.length < filterLength) {
@@ -15,11 +19,11 @@ object MetadataCleaner {
     return true
   }
 
-  def cleanseMetadata(rmIterator: Iterator[ReviewMetadata]): Iterator[ReviewMetadata] = {
-    for (meta <- rmIterator) yield cleansePipeline(meta)
+  def cleanMetadata(rmIterator: Iterator[ReviewMetadata]): Iterator[ReviewMetadata] = {
+    for (meta <- rmIterator) yield cleanMetadataPipeline(meta)
   }
 
-  private def cleansePipeline(meta: ReviewMetadata): ReviewMetadata = {
+  private def cleanMetadataPipeline(meta: ReviewMetadata): ReviewMetadata = {
     // Clean title
     var title = meta.title
     regexes.forEach(r => title = title.replaceAll(r, ""))
