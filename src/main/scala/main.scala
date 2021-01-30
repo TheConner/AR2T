@@ -55,7 +55,7 @@ object main {
       .join(uniqueMovieASIN, col("df_meta.asin") === col("df_review.asin"))
       .select(col("df_meta.asin"), col("df_meta.title"))
       .distinct()
-      .take(10)
+      .collect()
       .map(p => Product(p.getString(0), p.getString(1)))
 
 
