@@ -1,7 +1,7 @@
 package ca.advtech.ar2t
 package data
 
-import entities.{JsonParseable, Review, ReviewMetadata}
+import entities.{JsonParseable, Review, Product}
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SparkSession}
@@ -28,7 +28,7 @@ object DataIngest {
       .filter(ReviewCleaner.ReviewFilter)
   }
 
-  def ingestMetadata(spark: SparkSession, entity: String): RDD[ReviewMetadata] = {
+  def ingestMetadata(spark: SparkSession, entity: String): RDD[Product] = {
     val dataPath = configuration.getMetaPath(entity)
     val partitions = configuration.conf.getInt("spark.parser.filePartitions")
     val metaTextFile = spark.sparkContext.textFile(dataPath, partitions)
@@ -50,13 +50,13 @@ object DataIngest {
   }
 
   /**
-   * Internal helper for parsing JSON to ReviewMetadata objects. Designed to be used with spark's mapParitions method
+   * Internal helper for parsing JSON to Product objects. Designed to be used with spark's mapParitions method
    * for good concurrent performance.
    * @param lines Iterator of JSON strings
-   * @return Iterator of ReviewMetadata objects
+   * @return Iterator of Product objects
    */
-  private def ParseMetadata(lines: Iterator[String]): Iterator[ReviewMetadata] = {
-    for (line <- lines) yield JsonParseable[ReviewMetadata].Parse(line)
+  private def ParseMetadata(lines: Iterator[String]): Iterator[Product] = {
+    for (line <- lines) yield JsonParseable[Product].Parse(line)
   }
   //endregion
 }

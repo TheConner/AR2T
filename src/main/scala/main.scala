@@ -1,18 +1,24 @@
 package ca.advtech.ar2t
 
-import ca.advtech.ar2t.data.{DataIngest, DataWriter}
+import ca.advtech.ar2t.data.{DataIngest, DataWriter, TweetIngest}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.{Encoders, SQLContext, SparkSession}
-import ca.advtech.ar2t.entities.{Review, ReviewMetadata}
+import org.apache.spark.sql.{Encoders, Row, SQLContext, SparkSession}
+import ca.advtech.ar2t.entities.{Product, Review}
 import ca.advtech.ar2t.util.StringUtils
 import org.apache.spark.rdd.RDD
+import org.apache.spark.sql.catalyst.ScalaReflection
+import org.apache.spark.sql.execution.PartialReducerPartitionSpec
 import org.apache.spark.sql.functions.{col, expr, length}
+import org.apache.spark.sql.types.StructType
+
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.util.{Failure, Success}
 
 object main {
   //region Object members
 
   private val runtimeConfig = configuration.getConfigurationClass("execution")
-  private var metadataRDD: RDD[ReviewMetadata] = null
+  private var metadataRDD: RDD[Product] = null
   private var reviewRDD: RDD[Review] = null
   //endregion
 
@@ -45,23 +51,47 @@ object main {
     val uniqueMovieASIN = movieReviewDF.select("asin").distinct()
 
 
-    val joinedDF = movieMetaDF
+    val joinedDF: Array[Product] = movieMetaDF
       .join(uniqueMovieASIN, col("df_meta.asin") === col("df_review.asin"))
-      .select(col("df_meta.asin"), col("df_meta.title"), length(col("df_meta.title")))
+      .select(col("df_meta.asin"), col("df_meta.title"))
       .distinct()
-      .cache()
+      .take(10)
+      .map(p => Product(p.getString(0), p.getString(1)))
 
-    movieMetaDF.unpersist()
-    movieReviewDF.unpersist()
 
-    println("Output schema")
-    joinedDF.printSchema()
+    //movieMetaDF.unpersist()
+    //movieReviewDF.unpersist()
+
+    //println("Output schema")
 
     // Output
-    val writer = new DataWriter(configuration.getString("data.basePath")
+    /*val writer = new DataWriter(configuration.getString("data.basePath")
       + configuration.getString("data.outputPath")
       + StringUtils.genUnixTimeFileName("output", "csv"))
-    writer.WriteCSV(joinedDF)
+    writer.WriteCSV(joinedDF)*/
+
+    val tweetIngest = new TweetIngest()
+    val tweets = tweetIngest.getTweets(spark, spark.sparkContext.parallelize[Product](joinedDF))
+    tweets onComplete {
+      case Success(value) => {
+        println("Got all tweets: " + value.count())
+
+        // Write tweets
+        val dfWriter = new DataWriter(configuration.getRDDPath(entity))
+        dfWriter.WriteDS(value, "metadata_tweets")
+
+        val jsonWriter = new DataWriter(configuration.getString("data.basePath")
+          + configuration.getString("data.outputPath")
+          + StringUtils.genUnixTimeFileName("output", "json"))
+
+        jsonWriter.WriteJSON(value)
+      }
+      case Failure(exception) => {
+        println("--- ERROR ---")
+        println(exception.getMessage)
+        println(exception.getStackTrace.mkString("\n"))
+      }
+    }
   }
 
   private def IngestData(spark: SparkSession, entity: String) = {
@@ -87,7 +117,7 @@ object main {
       }
     } else if (ingestFromRDD) {
       import spark.implicits._
-      print("Reading data from RDD cache on filesystem")
+      println("Reading data from RDD cache on filesystem")
       // Ingest metadataRDD and reviewRDD
       val reviewDF = DataIngest.ingestDataFrame(spark, configuration.getRDDPath(entity), "reviews")
       val metadataDF = DataIngest.ingestDataFrame(spark, configuration.getRDDPath(entity), "metadata")
@@ -99,7 +129,7 @@ object main {
       metadataDF.printSchema()
 
       // Now we have to change it to an RDD
-      metadataRDD = metadataDF.as[ReviewMetadata].rdd
+      metadataRDD = metadataDF.as[Product].rdd
       reviewRDD = reviewDF.as[Review].rdd
     }
   }

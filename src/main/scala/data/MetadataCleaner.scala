@@ -1,7 +1,7 @@
 package ca.advtech.ar2t
 package data
 
-import entities.ReviewMetadata
+import entities.Product
 
 object MetadataCleaner {
 
@@ -12,18 +12,18 @@ object MetadataCleaner {
   private val regexes = config.getStringList("cleanMeta.regexClear")
   //endregion
 
-  def filterMetadata(meta: ReviewMetadata): Boolean = {
+  def filterMetadata(meta: Product): Boolean = {
     if (filterLength > 0 && meta.title.length < filterLength) {
       return false
     }
     return true
   }
 
-  def cleanMetadata(rmIterator: Iterator[ReviewMetadata]): Iterator[ReviewMetadata] = {
+  def cleanMetadata(rmIterator: Iterator[Product]): Iterator[Product] = {
     for (meta <- rmIterator) yield cleanMetadataPipeline(meta)
   }
 
-  private def cleanMetadataPipeline(meta: ReviewMetadata): ReviewMetadata = {
+  private def cleanMetadataPipeline(meta: Product): Product = {
     // Clean title
     var title = meta.title
     regexes.forEach(r => title = title.replaceAll(r, ""))
@@ -33,7 +33,7 @@ object MetadataCleaner {
       return meta
     } else {
       // Allocate new obj
-      return new ReviewMetadata(meta.asin, title)
+      return new Product(meta.asin, title)
     }
 
   }

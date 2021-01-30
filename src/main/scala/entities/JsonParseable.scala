@@ -27,10 +27,10 @@ object JsonParseable {
     }
   }
 
-  implicit object ReviewMetadata extends JsonParseable[ReviewMetadata] {
-    override def Parse(s: String): ReviewMetadata = {
+  implicit object ReviewMetadata extends JsonParseable[Product] {
+    override def Parse(s: String): Product = {
       val json: JsValue = Json.parse(s)
-      return new ReviewMetadata(
+      return new Product(
         (json\"asin").as[String],
         if ( (json \ "title").asOpt[String].isEmpty ) "" else (json\"title").as[String]
       )
