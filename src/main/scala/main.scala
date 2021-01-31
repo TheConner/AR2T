@@ -70,7 +70,7 @@ object main {
       + StringUtils.genUnixTimeFileName("output", "csv"))
     writer.WriteCSV(joinedDF)*/
 
-    val tweetIngest = new TweetIngest()
+    val tweetIngest = new TweetIngest(spark)
     val tweets = tweetIngest.getTweets(spark, spark.sparkContext.parallelize[Product](joinedDF))
     tweets onComplete {
       case Success(value) => {
