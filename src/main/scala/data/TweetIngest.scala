@@ -141,14 +141,15 @@ class TweetIngest(spark: SparkSession) extends Serializable {
 
     Thread.sleep(reqDelay)
     if (currentRateLimit != null) {
-      if (currentRateLimit.remaining + currentRequests < maxConcurrentRequests) {
+      if (currentRateLimit.remaining == 0) {
         val duration = java.time.Duration.between(Instant.now(), currentRateLimit.reset)
         print("\rHit rate limit, pausing for " + duration.toMinutes + " minutes")
         if (duration.toMillis > 0) {
           Thread.sleep(duration.toMillis + 10)
           currentRateLimit = getRateLimit()
+          println("Updated ratelimit: " + currentRateLimit.remaining)
+          writeCache()
         }
-        writeCache()
         progress()
       }
     }

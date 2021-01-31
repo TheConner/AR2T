@@ -7,8 +7,8 @@ scalaVersion := "2.12.12"
 resolvers += Resolver.sonatypeRepo("releases")
 
 // Apache spark
-libraryDependencies += "org.apache.spark" %% "spark-core" % "3.1.0"
-libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.1.0"
+libraryDependencies += "org.apache.spark" %% "spark-core" % "3.1.0" % "provided"
+libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.1.0" % "provided"
 
 // For config files
 libraryDependencies += "com.typesafe" % "config" % "1.4.1"
