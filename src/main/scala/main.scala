@@ -1,15 +1,12 @@
 package ca.advtech.ar2t
 
-import ca.advtech.ar2t.data.{DataIngest, DataWriter, TweetIngest}
-import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.{Encoders, Row, SQLContext, SparkSession}
-import ca.advtech.ar2t.entities.{Product, Review}
-import ca.advtech.ar2t.util.StringUtils
+import data.{DataIngest, DataWriter, TweetIngest}
+import entities.{Product, Review}
+import util.StringUtils
+
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.catalyst.ScalaReflection
-import org.apache.spark.sql.execution.PartialReducerPartitionSpec
-import org.apache.spark.sql.functions.{col, expr, length}
-import org.apache.spark.sql.types.StructType
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.col
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import scala.util.{Failure, Success}
@@ -92,6 +89,8 @@ object main {
         println(exception.getStackTrace.mkString("\n"))
       }
     }
+
+    spark.close()
   }
 
   private def IngestData(spark: SparkSession, entity: String) = {
@@ -134,7 +133,7 @@ object main {
     }
   }
 
-  private def initSpark(): SparkSession = {
+  def initSpark(): SparkSession = {
     val spark = SparkSession
       .builder()
       .appName("AR2T for X-MAP")

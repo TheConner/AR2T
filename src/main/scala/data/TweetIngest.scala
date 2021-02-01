@@ -2,6 +2,7 @@ package ca.advtech.ar2t
 package data
 
 import ca.advtech.ar2t.entities.{Product, SimplifiedTweet, TweetSearchResults}
+import ca.advtech.ar2t.util.LoggableDelay
 
 import scala.concurrent.ExecutionContext.Implicits.global
 import com.danielasfregola.twitter4s.TwitterRestClient
@@ -96,6 +97,10 @@ class TweetIngest(spark: SparkSession) extends Serializable {
     spark.createDataFrame(repsonses).as[Product]
   }
 
+  def getRestClient(): TwitterRestClient = {
+    restClient
+  }
+
   private def getRateLimit(): RateLimit = {
     try {
       Await.result(restClient.rateLimits(), 5.seconds).data.resources.search.values.toList(0)
@@ -143,9 +148,8 @@ class TweetIngest(spark: SparkSession) extends Serializable {
     if (currentRateLimit != null) {
       if (currentRateLimit.remaining == 0) {
         val duration = java.time.Duration.between(Instant.now(), currentRateLimit.reset)
-        print("\rHit rate limit, pausing for " + duration.toMinutes + " minutes")
         if (duration.toMillis > 0) {
-          Thread.sleep(duration.toMillis + 10)
+          LoggableDelay.Delay(duration.toMillis + 10, "Hit rate limit, pausing")
           currentRateLimit = getRateLimit()
           println("Updated ratelimit: " + currentRateLimit.remaining)
           writeCache()
