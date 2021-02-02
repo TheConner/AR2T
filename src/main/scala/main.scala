@@ -15,8 +15,8 @@ object main {
   //region Object members
 
   private val runtimeConfig = configuration.getConfigurationClass("execution")
-  private var metadataRDD: RDD[Product] = null
-  private var reviewRDD: RDD[Review] = null
+  var metadataRDD: RDD[Product] = null
+  var reviewRDD: RDD[Review] = null
   //endregion
 
   def main(args: Array[String]): Unit = {
@@ -82,18 +82,18 @@ object main {
           + StringUtils.genUnixTimeFileName("output", "json"))
 
         jsonWriter.WriteJSON(value)
+        spark.close()
       }
       case Failure(exception) => {
         println("--- ERROR ---")
         println(exception.getMessage)
         println(exception.getStackTrace.mkString("\n"))
+        spark.close()
       }
     }
-
-    spark.close()
   }
 
-  private def IngestData(spark: SparkSession, entity: String) = {
+  def IngestData(spark: SparkSession, entity: String) = {
     // Check if the configurations are valid
     val ingestFromJSON = runtimeConfig.getBoolean("dataIngestFromJSON.enabled")
     val ingestFromRDD = runtimeConfig.getBoolean("dataIngestFromRDD")

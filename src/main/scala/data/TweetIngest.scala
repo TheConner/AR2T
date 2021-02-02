@@ -13,6 +13,7 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.functions.col
 import org.apache.spark.sql.{DataFrame, Dataset, Encoders, SaveMode, SparkSession}
 
+import java.io.{FileInputStream, FileOutputStream, ObjectInput, ObjectInputStream, ObjectOutputStream}
 import java.nio.file.{Files, Path, Paths}
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -42,16 +43,16 @@ class TweetIngest(spark: SparkSession) extends Serializable {
   loadCache()
 
   // On create we will want to seed our tweet cache
-  private def loadCache(): Unit = {
-    import spark.implicits._
+  def loadCache(): Unit = {
+    import collection.JavaConverters._
 
     println("TweetIngest: Loading cache")
 
     if (Files.exists(Paths.get(cacheFile))) {
       println("Cache file exists")
-      val schema = Encoders.product[TweetSearchResults].schema
-      val tweetCacheDS = spark.read.load(cacheFile).as[TweetSearchResults].collect()
-      tweetCacheDS.foreach(m => tweetCache += (m.query -> m.tweets))
+      val ois = new ObjectInputStream(new FileInputStream(cacheFile))
+      tweetCache = ois.readObject().asInstanceOf[scala.collection.mutable.Map[String, List[SimplifiedTweet]]]
+      ois.close()
 
       //tweetCacheDS.map(cachedResult => tweetCache += (cachedResult.query -> cachedResult.tweets))
       println("Loaded " + tweetCache.keys.toList.length + " cached searches")
@@ -60,12 +61,14 @@ class TweetIngest(spark: SparkSession) extends Serializable {
     }
   }
 
-  private def writeCache(): Unit = {
+  def writeCache(): Unit = {
     import spark.implicits._
     println("Writing cache to disk")
-    val writeableCache = tweetCache.map(cached => TweetSearchResults(cached._1, cached._2)).toList
-    writeableCache.toDS().write.mode(SaveMode.Overwrite).save(cacheFile)
-    println("Wrote " + writeableCache.length + " saved searches")
+    val oos = new ObjectOutputStream(new FileOutputStream(cacheFile))
+    oos.writeObject(tweetCache)
+    oos.close()
+
+    println("Wrote " + tweetCache.toList.length + " saved searches")
   }
 
 

@@ -24,13 +24,7 @@ object LoggableDelay {
       Thread.sleep(tickDuration)
       elapsedTime -= tickDuration
     }
-  }
 
-
-  def main(args: Array[String]): Unit = {
-    println("Loggable delay test")
-
-    Delay(10000)
-
+    println("")
   }
 }
