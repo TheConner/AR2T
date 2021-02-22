@@ -8,8 +8,16 @@ object StringUtils {
     case _ => false
   }
 
+  private def genTimestamp() = {
+    System.currentTimeMillis / 1000
+  }
+
   def genUnixTimeFileName(base: String, ext: String): String = {
+    base + genTimestamp() + "." + ext
+  }
+
+  def genUnixTimeFileName(base: String): String = {
     val timestamp: Long = System.currentTimeMillis / 1000
-    base + timestamp + "." + ext
+    base + genTimestamp()
   }
 }

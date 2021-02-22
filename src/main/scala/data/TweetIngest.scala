@@ -1,27 +1,23 @@
 package ca.advtech.ar2t
 package data
 
-import ca.advtech.ar2t.entities.{Product, SimplifiedTweet, TweetSearchResults}
-import ca.advtech.ar2t.util.LoggableDelay
+import entities.{Product, SimplifiedTweet}
+import util.LoggableDelay
 
-import scala.concurrent.ExecutionContext.Implicits.global
 import com.danielasfregola.twitter4s.TwitterRestClient
-import com.danielasfregola.twitter4s.entities.enums.Resource
-import com.danielasfregola.twitter4s.entities.{RateLimit, RatedData, StatusSearch, Tweet}
+import com.danielasfregola.twitter4s.entities.{RateLimit, RatedData, StatusFullSearch}
 import com.danielasfregola.twitter4s.exceptions.TwitterException
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.functions.col
-import org.apache.spark.sql.{DataFrame, Dataset, Encoders, SaveMode, SparkSession}
+import org.apache.spark.sql.{Dataset, SparkSession}
 
-import java.io.{FileInputStream, FileOutputStream, ObjectInput, ObjectInputStream, ObjectOutputStream}
-import java.nio.file.{Files, Path, Paths}
+import java.io.{FileInputStream, FileOutputStream, ObjectInputStream, ObjectOutputStream}
+import java.nio.file.{Files, Paths}
+import java.time.Instant
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.time.{Duration, Instant}
 import scala.collection.mutable.ListBuffer
-import scala.concurrent.duration.{Duration, DurationInt}
-import scala.concurrent.{Await, Future, duration}
-import scala.util.control.Exception
+import scala.concurrent.ExecutionContext.Implicits.global
+import scala.concurrent.Future
 import scala.util.{Failure, Success}
 
 class TweetIngest(spark: SparkSession) extends Serializable {
@@ -30,8 +26,8 @@ class TweetIngest(spark: SparkSession) extends Serializable {
   private val restClient = TwitterRestClient()
   private var tweetCache = scala.collection.mutable.Map[String, List[SimplifiedTweet]]()
   //private var tweetCache: Dataset[TweetSearchResults] = null
-  private var repsonses = ListBuffer[Product]()
-  private var currentRateLimit: RateLimit = getRateLimit()
+  private var responses = ListBuffer[Product]()
+  private var currentRateLimit: RateLimit = RateLimit(300, 300, Instant.now().plusSeconds(900))
   private var requestCount = 0
   private var currentRequests = 0
   private var totalRequests = 0
@@ -39,12 +35,15 @@ class TweetIngest(spark: SparkSession) extends Serializable {
   private val reqDelay = config.getInt("requestDelay")
   private val cacheFile = configuration.getString("data.basePath") + config.getString("writeTweetPath") + config.getString("writeTweetFile")
 
-  // Need to load the cache on startup
-  loadCache()
+  init()
+
+  private def init(): Unit = {
+    println("Init TweetIngest")
+    loadCache()
+  }
 
   // On create we will want to seed our tweet cache
   def loadCache(): Unit = {
-    import collection.JavaConverters._
 
     println("TweetIngest: Loading cache")
 
@@ -62,7 +61,6 @@ class TweetIngest(spark: SparkSession) extends Serializable {
   }
 
   def writeCache(): Unit = {
-    import spark.implicits._
     println("Writing cache to disk")
     val oos = new ObjectOutputStream(new FileOutputStream(cacheFile))
     oos.writeObject(tweetCache)
@@ -70,7 +68,6 @@ class TweetIngest(spark: SparkSession) extends Serializable {
 
     println("Wrote " + tweetCache.toList.length + " saved searches")
   }
-
 
   def getTweets(spark: SparkSession, requests: RDD[Product]): Future[Dataset[Product]] = Future {
     import spark.implicits._
@@ -82,36 +79,31 @@ class TweetIngest(spark: SparkSession) extends Serializable {
       }
 
       val query = product.title.toLowerCase()
-      if (tweetCache.keys.exists(_ == query)) {
-        requestCount += 1
-        Product(product.asin, product.title, tweetCache(query))
+
+      if (query.length < 500) {
+        if (tweetCache.keys.exists(_ == query)) {
+          requestCount += 1
+          responses += Product(product.asin, product.title, tweetCache(query))
+        } else {
+          searchHandler(query, product)
+        }
       } else {
-        searchHandler(query, product)
+        // Discard, consider it a completed request
+        requestCount += 1
       }
     })
 
     // Wait to ensure we get all the responses
-    while (requestCount + 1 < totalRequests) {
-      println("Waiting for responses, got " + requestCount + " of " + collectedReq.length)
-      Thread.sleep(5000)
-    }
+    while (currentRequests > 0)
+      LoggableDelay.Delay(5000, f"Waiting to collect all responses, ${currentRequests} remaining")
+
 
     // With all of that done, we can build a RDD from this
-    spark.createDataFrame(repsonses).as[Product]
+    spark.createDataFrame(responses).as[Product]
   }
 
   def getRestClient(): TwitterRestClient = {
     restClient
-  }
-
-  private def getRateLimit(): RateLimit = {
-    try {
-      Await.result(restClient.rateLimits(), 5.seconds).data.resources.search.values.toList(0)
-    } catch {
-      case e: Exception => {
-        RateLimit(0,0, Instant.now().plus(14, ChronoUnit.MINUTES))
-      }
-    }
   }
 
   private def searchHandler(query: String, product: Product): Unit = {
@@ -123,19 +115,17 @@ class TweetIngest(spark: SparkSession) extends Serializable {
         currentRateLimit = result.rate_limit
 
         // Add the data to the response
-        tweetCache += (query -> result.data.statuses.map(t => SimplifiedTweet(t.created_at, t.favorite_count, t.id, t.lang, t.retweet_count, t.source, t.text, t.truncated)))
+        tweetCache += (query -> result.data.data.map(t => SimplifiedTweet(t.created_at, t.favorite_count, t.id, t.lang, t.retweet_count, t.source, t.text, t.truncated)))
 
-        repsonses += Product(product.asin, product.title,
-          result.data.statuses.map(t => SimplifiedTweet(t.created_at, t.favorite_count, t.id, t.lang, t.retweet_count, t.source, t.text, t.truncated)))
+        responses += Product(product.asin, product.title,
+          result.data.data.map(t => SimplifiedTweet(t.created_at, t.favorite_count, t.id, t.lang, t.retweet_count, t.source, t.text, t.truncated)))
 
         progress()
       }
       case Failure(err: TwitterException) => {
+        System.err.println("Error fetching tweet: " + err.getMessage)
+        System.err.println("Query: " + query)
         currentRequests -= 1
-        // Refresh the rate limit
-        currentRateLimit = getRateLimit()
-        // This is caused by a rate limit error, re-execute which will pause until the rate limit is lifted
-        searchHandler(query, product)
         progress()
       }
       case Failure(err) => {
@@ -144,24 +134,22 @@ class TweetIngest(spark: SparkSession) extends Serializable {
     }
   }
 
-  private def searchTweet(query: String): Future[RatedData[StatusSearch]] = {
+  private def searchTweet(query: String): Future[RatedData[StatusFullSearch]] = {
     currentRequests += 1
 
-    Thread.sleep(reqDelay)
+    LoggableDelay.Delay(reqDelay, "Request delay")
     if (currentRateLimit != null) {
       if (currentRateLimit.remaining == 0) {
         val duration = java.time.Duration.between(Instant.now(), currentRateLimit.reset)
         if (duration.toMillis > 0) {
           LoggableDelay.Delay(duration.toMillis + 10, "Hit rate limit, pausing")
-          currentRateLimit = getRateLimit()
-          println("Updated ratelimit: " + currentRateLimit.remaining)
           writeCache()
         }
         progress()
       }
     }
 
-    restClient.searchTweet(query)
+    restClient.searchAllTweet(query,250)
   }
 
   private def progress(): Unit = {

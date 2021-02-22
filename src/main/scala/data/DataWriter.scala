@@ -1,6 +1,7 @@
 package ca.advtech.ar2t
 package data
 
+import ca.advtech.ar2t.entities.SimplifiedTweet
 import com.univocity.parsers.csv.{CsvWriter, CsvWriterSettings}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, Dataset, SaveMode}
@@ -64,6 +65,26 @@ class DataWriter(fname: String) {
       println("DataFrame Written OK")
     } catch {
       case e: Throwable => println(e.getMessage() + '\n' + e.getStackTrace())
+    }
+  }
+
+  def WriteSingleJSON[T](dataSet: Dataset[T], name: String): Unit = {
+    println("Attempting to write DataSet to single JSON: " + fname)
+
+    try {
+      val jsonDS = dataSet.toJSON
+      val count = jsonDS.count()
+
+      jsonDS
+        .repartition(1)
+        .rdd
+        .zipWithIndex()
+        .map { case(json, idx) =>
+          if(idx == 0) "[\n" + json + "," // first row
+          else if(idx == count-1) json + "\n]" // last row
+          else json + ","
+        }
+        .saveAsTextFile(fname.concat("_").concat(name))
     }
   }
 

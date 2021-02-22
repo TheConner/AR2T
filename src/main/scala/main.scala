@@ -23,7 +23,6 @@ object main {
     val spark = initSpark()
     val entity = runtimeConfig.getString("entity")
 
-
     IngestData(spark, entity)
     // At this point we will have a valid dataframe
 
@@ -75,13 +74,13 @@ object main {
 
         // Write tweets
         val dfWriter = new DataWriter(configuration.getRDDPath(entity))
-        dfWriter.WriteDS(value, "metadata_tweets")
+        dfWriter.WriteDS(value, "")
 
         val jsonWriter = new DataWriter(configuration.getString("data.basePath")
           + configuration.getString("data.outputPath")
-          + StringUtils.genUnixTimeFileName("output", "json"))
+          + StringUtils.genUnixTimeFileName("output"))
+        jsonWriter.WriteSingleJSON(value, entity.concat("Tweets.json"))
 
-        jsonWriter.WriteJSON(value)
         spark.close()
       }
       case Failure(exception) => {

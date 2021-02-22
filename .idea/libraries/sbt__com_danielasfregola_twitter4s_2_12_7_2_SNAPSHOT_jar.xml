@@ -1,0 +1,11 @@
+<component name="libraryTable">
+  <library name="sbt: com.danielasfregola:twitter4s_2.12:7.2-SNAPSHOT:jar">
+    <CLASSES>
+      <root url="jar://$PROJECT_DIR$/../twitter4s/target/scala-2.12/twitter4s_2.12-7.2-SNAPSHOT.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/../twitter4s" />
+    </SOURCES>
+  </library>
+</component>

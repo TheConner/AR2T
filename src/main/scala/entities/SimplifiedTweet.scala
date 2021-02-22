@@ -1,6 +1,8 @@
 package ca.advtech.ar2t
 package entities
 
+import play.api.libs.json.JsValue
+
 import java.time.Instant
 
 /**
@@ -23,3 +25,6 @@ case class SimplifiedTweet(created_at: Instant,
                            text: String,
                            truncated: Boolean = false
                           )
+
+
+
