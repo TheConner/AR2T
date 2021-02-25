@@ -23,7 +23,7 @@ import scala.util.{Failure, Success}
 class TweetIngest(spark: SparkSession) extends Serializable {
   private val config = configuration.getConfigurationClass("data.tweets")
   private val maxConcurrentRequests = config.getInt("maxConcurrentRequests")
-  private val restClient = TwitterRestClient()
+  private val restClient = TwitterRestClient(configuration.twitterBearerToken)
   private var tweetCache = scala.collection.mutable.Map[String, List[SimplifiedTweet]]()
   //private var tweetCache: Dataset[TweetSearchResults] = null
   private var responses = ListBuffer[Product]()
@@ -73,6 +73,7 @@ class TweetIngest(spark: SparkSession) extends Serializable {
     import spark.implicits._
     val collectedReq = requests.collect()
     totalRequests = collectedReq.length
+    println("Total requests to make: " + totalRequests.toString)
     val blah = collectedReq.map(product => {
       while (currentRequests >= maxConcurrentRequests) {
         Thread.sleep(1000)
@@ -113,12 +114,17 @@ class TweetIngest(spark: SparkSession) extends Serializable {
         requestCount += 1
         currentRequests -= 1
         currentRateLimit = result.rate_limit
+        if (result.data.meta.result_count == 0) {
+          // No results :(
+          tweetCache += (query -> List())
+        } else {
+          // When result_count > 0, the data attribute should be populated
+          tweetCache += (query -> result.data.data.map(t => SimplifiedTweet(t.id.toLong, t.text)))
 
-        // Add the data to the response
-        tweetCache += (query -> result.data.data.map(t => SimplifiedTweet(t.created_at, t.favorite_count, t.id, t.lang, t.retweet_count, t.source, t.text, t.truncated)))
+          responses += Product(product.asin, product.title,
+            result.data.data.map(t => SimplifiedTweet(t.id.toLong, t.text)))
+        }
 
-        responses += Product(product.asin, product.title,
-          result.data.data.map(t => SimplifiedTweet(t.created_at, t.favorite_count, t.id, t.lang, t.retweet_count, t.source, t.text, t.truncated)))
 
         progress()
       }
@@ -136,8 +142,7 @@ class TweetIngest(spark: SparkSession) extends Serializable {
 
   private def searchTweet(query: String): Future[RatedData[StatusFullSearch]] = {
     currentRequests += 1
-
-    LoggableDelay.Delay(reqDelay, "Request delay")
+    Thread.sleep(reqDelay)
     if (currentRateLimit != null) {
       if (currentRateLimit.remaining == 0) {
         val duration = java.time.Duration.between(Instant.now(), currentRateLimit.reset)
@@ -148,7 +153,6 @@ class TweetIngest(spark: SparkSession) extends Serializable {
         progress()
       }
     }
-
     restClient.searchAllTweet(query,250)
   }
 

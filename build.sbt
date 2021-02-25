@@ -2,7 +2,7 @@ import sbt.Keys.libraryDependencies
 
 name := "AR2T"
 
-version := "0.1"
+version := "0.2"
 
 scalaVersion := "2.12.13"
 
@@ -17,8 +17,8 @@ val ScalaLogging = "3.9.2"
 val RandomDataGenerator = "2.8"
 
 val commonDeps = Seq(
-  "org.apache.spark" %% "spark-core" % Spark,
-  "org.apache.spark" %% "spark-sql" % Spark,
+  "org.apache.spark" %% "spark-core" % Spark % "provided",
+  "org.apache.spark" %% "spark-sql" % Spark % "provided",
   // For config files
   "com.typesafe" % "config" % "1.4.1",
   // For JSON
@@ -33,10 +33,6 @@ val commonDeps = Seq(
   "org.json4s" %% "json4s-native" % Json4s,
   "org.json4s" %% "json4s-ext" % Json4s,
   "com.typesafe.scala-logging" %% "scala-logging" % ScalaLogging,
-  "org.specs2" %% "specs2-core" % Specs2 % "test",
-  "org.specs2" %% "specs2-mock" % Specs2 % "test",
-  "com.typesafe.akka" %% "akka-testkit" % Akka % "test",
-  "com.danielasfregola" %% "random-data-generator" % RandomDataGenerator % "test"
 )
 /**
  *
@@ -73,5 +69,17 @@ lazy val app = (project in file("."))
     },
     idePackagePrefix := Some("ca.advtech.ar2t")
   )
+assemblyMergeStrategy in assembly := {
+  case PathList("META-INF", "MANIFEST.MF") => MergeStrategy.discard
+  case PathList("reference.conf") => MergeStrategy.concat
+  case PathList("jackson-annotations-2.10.5.jar", xs @ _*) => MergeStrategy.last
+  case PathList("jackson-core-2.10.5.jar", xs @ _*) => MergeStrategy.last
+  case PathList("jackson-databind-2.10.5.1.jar", xs @ _*) => MergeStrategy.last
+  case PathList("jackson-datatype-jdk8-2.10.5.jar", xs @ _*) => MergeStrategy.last
+  case PathList("jackson-datatype-jsr310-2.10.5.jar", xs @ _*) => MergeStrategy.last
+  case PathList("jackson-module-parameter-names-2.10.5.jar", xs @ _*) => MergeStrategy.last
+  case PathList("joda-convert-2.2.0.jar", xs @ _*) => MergeStrategy.last
+  case _ => MergeStrategy.first
+}
 
 idePackagePrefix := Some("ca.advtech.ar2t")

@@ -2,10 +2,16 @@ package ca.advtech.ar2t
 
 import com.typesafe.config.{Config, ConfigFactory}
 import org.apache.spark.sql.RuntimeConfig
-import org.apache.spark.{SparkConf, SparkContext}
+
+import java.io.File
 
 object configuration {
-  val conf = ConfigFactory.load()
+  private val baseConfig = ConfigFactory.load()
+  private val basedir = System.getProperty("user.dir")
+  private val myConfigFile = new File(basedir + "/application.conf")
+  val twitterBearerToken: String = sys.env.getOrElse("TWITTER_BEARER_TOKEN", throw new RuntimeException("I need a bearer token!"))
+  println("Using config source: " + myConfigFile.toURI.toString)
+  val conf = ConfigFactory.parseFile(myConfigFile).withFallback(baseConfig)
 
   // This will throw an exception and crash if the config is malformed
   // it is very intentional :)
