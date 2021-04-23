@@ -12,9 +12,11 @@ package entities
  * @param text
  * @param truncated
  */
+@SerialVersionUID(140L)
 case class SimplifiedTweet(
                            id: Long,
                            text: String,
+                           author_id: String
                           )
 
 

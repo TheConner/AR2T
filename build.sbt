@@ -33,6 +33,7 @@ val commonDeps = Seq(
   "org.json4s" %% "json4s-native" % Json4s,
   "org.json4s" %% "json4s-ext" % Json4s,
   "com.typesafe.scala-logging" %% "scala-logging" % ScalaLogging,
+  "com.lihaoyi" %% "upickle" % "0.9.5" // SBT
 )
 /**
  *

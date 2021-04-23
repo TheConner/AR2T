@@ -37,3 +37,5 @@ plt.xlabel(sys.argv[4])
 
 plt.bar(outDict.keys(), outDict.values())
 plt.show()
+
+print(outDict.keys())
