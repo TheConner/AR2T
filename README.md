@@ -1,4 +1,7 @@
+> :warning: **This project is no longer maintained and unlikely to work**. Due to recent Twitter API changes that impacted the Twitter4S project, this project is non-functional.
+
 # AR2T
+
 AmazonReviews2Tweets is designed to extract tweets related to amazon reviews. It is designed to parse [amazon review 
 datasets](https://nijianmo.github.io/amazon/index.html) and fetch tweets related to the products. Our overall motivation
 for this is to integrate 3rd party data into recommender systems.
